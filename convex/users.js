@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalQuery, mutation, query } from "./_generated/server";
 
 export const store = mutation({
   args: {},
@@ -27,39 +27,68 @@ export const store = mutation({
       return user._id;
     }
     // If it's a new identity, create a new `User`.
-   return await ctx.db.insert("users", {
-  name: identity.name ?? "Anonymous",
-  email: identity.email,
-  imageUrl: identity.pictureUrl,
-  plan: "free",
-  projectUsed: 0,
-  createdAt: Date.now(),
-  exportsThisMonth: 0,
-  externalId: identity.subject, // Or use identity.tokenIdentifier again if that's your ID
-  tokenIdentifier: identity.tokenIdentifier,
-  lastActiveAt: Date.now(),
-});
+    return await ctx.db.insert("users", {
+      name: identity.name ?? "Anonymous",
+      email: identity.email,
+      imageUrl: identity.pictureUrl,
+      plan: "free",
+      projectUsed: 0,
+      createdAt: Date.now(),
+      exportsThisMonth: 0,
+      externalId: identity.subject, // Or use identity.tokenIdentifier again if that's your ID
+      tokenIdentifier: identity.tokenIdentifier,
+      lastActiveAt: Date.now(),
+    });
   },
 });
 
+export const getCurrentUser = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
 
-export const getCurrentUsers= query({
-    handler:async(ctx)=>{
-        const identity = await ctx.auth.getUserIdentity();
-        if(!identity){
-            throw new Error("Not authenticated")
-        }
-
-         const user = await ctx.db
+    const user = await ctx.db
       .query("users")
       .withIndex("by_token", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
       )
-      .unique(); 
+      .first();
 
-      if(!user){
-        throw new Error("User Not Found")
-      }
-      return user
-    }
-})
+    return user;
+  },
+});
+// export const getCurrentUsers= query({
+//     handler:async(ctx)=>{
+//         const identity = await ctx.auth.getUserIdentity();
+//         if(!identity){
+//             throw new Error("Not authenticated")
+//         }
+
+//          const user = await ctx.db
+//       .query("users")
+//       .withIndex("by_token", (q) =>
+//         q.eq("tokenIdentifier", identity.tokenIdentifier),
+//       )
+//       .unique(); 
+
+//       if(!user){
+//         throw new Error("User Not Found")
+//       }
+//       return user
+//     }
+// })
+
+
+// export const getCurrentUser = internalQuery(async (ctx) => {
+//   const identity = await ctx.auth.getUserIdentity();
+//   if (!identity) return null;
+
+//   const user = await ctx.db
+//     .query("users")
+//     .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+//     .first();
+
+//   return user;
+// });
+
+
